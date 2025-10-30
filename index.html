@@ -1,595 +1,623 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Islamic AI Assistant</title>
-
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
-
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              arabic: ['"Noto Naskh Arabic"', "serif"],
-            },
-          },
-        },
-      };
-    </script>
-
-    <script
-      src="https://unpkg.com/react@18/umd/react.development.js"
-      crossorigin
-    ></script>
-    <script
-      src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"
-      crossorigin
-    ></script>
-
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-    <script src="https://unpkg.com/lucide@latest"></script>
-  </head>
-  <body>
+</head>
+<body>
     <div id="root"></div>
 
     <script type="text/babel">
-      // Get React functions from the global "React" object
-      const { useState, useEffect, useRef } = React;
+      
+        const { useState, useEffect, useRef } = React;
 
-      // --- All your helper functions and data (unchanged) ---
+        // API Service (TypeScript types removed)
+        // This is a mock service. In a real app, it would make network requests.
+        const apiService = {
+          HADITH_API_URL: "https://api.example.com/hadith",
+          QURAN_API_URL: "https://api.example.com/quran",
+          API_KEY: "$2y$10$b0zH1LawIxcX1Qnhh9iKhjm3M14pkY1KMkQZmQXgaQgqYM1rR3hm",
 
-      // Mock services
-      const mockServices = {
-        getDailyVerse: (language) => {
-          return new Promise((resolve) => {
-            setTimeout(() => {
-              const verses = {
-                en: {
-                  id: "1",
-                  text: "Indeed, with hardship comes ease.",
-                  translation: "Indeed, with hardship comes ease.",
-                  reference: "Quran 94:5-6",
-                },
-                ur: {
-                  id: "1",
-                  text: "بے شک ہم نے تمہارے لیے آسانی کے ساتھ مشکل کو آسان بنایا ہے۔",
-                  translation:
-                    "بے شک ہم نے تمہارے لیے آسانی کے ساتھ مشکل کو آسان بنایا ہے۔",
-                  reference: "قرآن 94:5-6",
-                },
-                ar: {
-                  id: "1",
-                  text: "إِنَّ مَعَ الْعُسْرِ يُسْرًا",
-                  translation: "إِنَّ مَعَ الْعُسْرِ يُسْرًا",
-                  reference: "سورة الشرح 94:5-6",
-                },
-                hi: {
-                  id: "1",
-                  text: "वास्तव में, कठिनाई के ساتھ आसानी है।",
-                  translation: "वास्तव में, कठिनाई के ساتھ आसानी है।",
-                  reference: "कुरान 94:5-6",
-                },
-                "roman-ur": {
-                  id: "1",
-                  text: "Beshak hum ne tumhare liye aasani ke sath mushkil ko aasan banaya hai.",
-                  translation:
-                    "Beshak hum ne tumhare liye aasani ke sath mushkil ko aasan banaya hai.",
-                  reference: "Quran 94:5-6",
-                },
-                "roman-hi": {
-                  id: "1",
-                  text: "Vastav mein, kathinai ke saath aasani hai.",
-                  translation: "Vastav mein, kathinai ke saath aasani hai.",
-                  reference: "Quran 94:5-6",
-                },
-              };
-              resolve(verses[language]);
-            }, 800);
-          });
-        },
-
-        generateGroundedResponse: (prompt, language, image) => {
-          return new Promise((resolve) => {
-            setTimeout(() => {
-              const responses = {
-                en: `Based on Islamic teachings, ${
-                  prompt.toLowerCase().includes("prayer")
-                    ? "prayer (Salah) is one of the five pillars of Islam and is obligatory for every Muslim."
-                    : "your question about Islam is important. The Quran and Sunnah provide guidance on all aspects of life."
-                }`,
-                ur: `اسلامی تعلیمات کے مطابق، ${
-                  prompt.toLowerCase().includes("prayer")
-                    ? "نماز (صلوٰۃ) اسلام کے پانچ ستونوں میں سے ایک ہے اور ہر مسلمان کے لیے فرض ہے۔"
-                    : "آپ کا اسلام کے بارے میں سوال اہم ہے۔ قرآن اور سنت زندگی کے تمام پہلوؤں پر ہدایت فراہم کرتے ہیں۔"
-                }`,
-                ar: `بناءً على التعاليم الإسلامية، ${
-                  prompt.toLowerCase().includes("prayer")
-                    ? "الصلاة هي أحد أركان الإسلام الخمسة وهي واجبة على كل مسلم."
-                    : "سؤالك حول الإسلام مهم. يوفر القرآن والسنة الإرشاد في جميع جوانب الحياة."
-                }`,
-                hi: `इस्लामिक शिक्षाओं के अनुसार, ${
-                  prompt.toLowerCase().includes("prayer")
-                    ? "नमाज़ (सलाह) इस्लाम के पाँच स्तंभों में से एक है और हर मुस्लिम के लिए अनिवार्य है।"
-                    : "इस्लाम के बारे में आपका प्रश्न महत्वपूर्ण है। कुरान और सुन्नत जीवन के सभी पहलुओं पर मार्गदर्शन प्रदान करते हैं।"
-                }`,
-                "roman-ur": `Islami taleemat ke mutabiq, ${
-                  prompt.toLowerCase().includes("prayer")
-                    ? "namaz (salah) Islam ke paanch stoonon mein se aik hai aur har muslim ke liye farz hai."
-                    : "aap ka Islam ke baray mein sawal aham hai. Quran aur sunnah zindagi ke tamam pahluon par hidayat farahim karte hain."
-                }`,
-                "roman-hi": `Islamik shikshaon ke anusaar, ${
-                  prompt.toLowerCase().includes("prayer")
-                    ? "namaaz (salah) Islam ke paanch stambhon mein se ek hai aur har muslim ke liye anivaarya hai."
-                    : "Islam ke baare mein aapka prashn mahatvapurn hai. Quran aur sunnah jeevan ke sabhee pahluon par maargadarshan pradaan karte hain."
-                }`,
-              };
-
-              resolve({
-                content: responses[language],
-                sources: [
-                  { title: "Quran 2:238", url: "#" },
-                  { title: "Sahih Bukhari", url: "#" },
-                ],
-              });
-            }, 1500);
-          });
-        },
-
-        generateSpeech: (text) => {
-          // In a real app, this would use Web Speech API or a TTS service
-          console.log("Generating speech for:", text);
-          if ("speechSynthesis" in window) {
-            const utterance = new SpeechSynthesisUtterance(text);
-            // This is a basic guess; a real app would need language codes
-            if (text.match(/[\u0600-\u06FF]/)) {
-              utterance.lang = "ar-SA";
-            } else if (text.match(/[\u0900-\u097F]/)) {
-              utterance.lang = "hi-IN";
-            } else {
-              utterance.lang = "en-US";
+          detectIntent: (query) => {
+            const lowerQuery = query.toLowerCase();
+            const prayerKeywords = ['prayer', 'salah', 'namaz', 'pray', 'wudu', 'ablution'];
+            if (prayerKeywords.some(keyword => lowerQuery.includes(keyword))) {
+              return "prayer";
             }
-            speechSynthesis.speak(utterance);
+            const pillarKeywords = ['pillar', 'pillars', 'shahada', 'fasting', 'zakat', 'hajj', 'pilgrimage'];
+            if (pillarKeywords.some(keyword => lowerQuery.includes(keyword))) {
+              return "pillar";
+            }
+            const hadithKeywords = ['hadith', 'prophet', 'sunnah', 'muhammad', 'pbuh', 'sahaba'];
+            if (hadithKeywords.some(keyword => lowerQuery.includes(keyword))) {
+              return "hadith";
+            }
+            const quranKeywords = ['quran', 'koran', 'surah', 'ayah', 'verse', 'allah', 'god'];
+            if (quranKeywords.some(keyword => lowerQuery.includes(keyword))) {
+              return "quran";
+            }
+            return "general";
+          },
+
+          searchHadith: async (query) => {
+            try {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              if (query.toLowerCase().includes('prayer')) {
+                return [{
+                  id: 1,
+                  hadith: "The Prophet صلى الله عليه وسلم said: 'Between a man and polytheism and unbelief is the abandonment of prayer.'",
+                  book: "Sahih Muslim",
+                  chapter: "The Book of Prayer",
+                  narrator: "Narrated by Abu Huraira"
+                }];
+              }
+              return [{
+                id: 2,
+                hadith: "The Prophet صلى الله عليه وسلم said: 'Seeking knowledge is obligatory upon every Muslim.'",
+                book: "Sunan Ibn Majah",
+                chapter: "The Book of Knowledge",
+                narrator: "Narrated by Ibn Abbas"
+              }];
+            } catch (error) {
+              console.error("Hadith API error:", error);
+              return [];
+            }
+          },
+
+          searchQuran: async (query) => {
+            try {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              if (query.toLowerCase().includes('mercy')) {
+                return [{
+                  reference: "Surah Al-Anbiya 21:107",
+                  arabic: "وَمَا أَرْسَلْنَاكَ إِلَّا رَحْمَةً لِّلْعَالَمِينَ",
+                  translation: "And We have not sent you, [O Muhammad], except as a mercy to the worlds.",
+                  tafsir: "This verse highlights the merciful nature of Prophet Muhammad's mission, emphasizing that his prophethood was for the benefit of all creation."
+                }];
+              }
+              return [{
+                reference: "Surah Ar-Rahman 55:29",
+                arabic: "وَيَبْقَىٰ وَجْهُ رَبِّكَ ذُو الْجَلَالِ وَالْإِكْرَامِ",
+                translation: "And the Face of your Lord will remain, full of Majesty and Honor.",
+                tafsir: "This verse emphasizes the eternal nature of Allah's attributes of majesty and generosity."
+              }];
+            } catch (error) {
+              console.error("Quran API error:", error);
+              return [];
+            }
+          },
+
+          searchGeneralKnowledge: async (query) => {
+            try {
+              await new Promise(resolve => setTimeout(resolve, 1500));
+              const sources = [
+                { title: "Islamic Knowledge - General Information", url: "#" },
+                { title: "Religious Studies Resources", url: "#" }
+              ];
+              if (query.toLowerCase().includes('history')) {
+                return {
+                  content: "Islamic history encompasses the development of Islamic civilization from the 7th century to the present. It includes the life of Prophet Muhammad, the expansion of Islam, the development of Islamic law, theology, philosophy, and the contributions of Muslim scholars to various fields of knowledge.",
+                  sources
+                };
+              }
+              return {
+                content: `Based on general Islamic knowledge, ${query}. Islam emphasizes monotheism, compassion, justice, and the importance of community. The religion provides guidance on all aspects of life including worship, ethics, social relations, and governance.`,
+                sources
+              };
+            } catch (error) {
+              console.error("General search error:", error);
+              return {
+                content: "I couldn't find specific information on this topic. Please try rephrasing your question.",
+                sources: []
+              };
+            }
+          },
+
+          generateGroundedResponse: async (prompt, language, image) => {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            const intent = apiService.detectIntent(prompt);
+            
+            switch (intent) {
+              case "hadith": {
+                const hadithResults = await apiService.searchHadith(prompt);
+                if (hadithResults.length > 0) {
+                  const hadith = hadithResults[0];
+                  const sources = [{
+                    title: `${hadith.book} - ${hadith.chapter}`,
+                    url: `#hadith-${hadith.id}`
+                  }];
+                  return {
+                    content: `Based on Islamic teachings and Hadith:\n\n"${hadith.hadith}"\n\nThis Hadith is from ${hadith.book}, ${hadith.chapter}, ${hadith.narrator}.`,
+                    sources
+                  };
+                }
+                break;
+              }
+              case "quran": {
+                const quranResults = await apiService.searchQuran(prompt);
+                if (quranResults.length > 0) {
+                  const verse = quranResults[0];
+                  const sources = [{
+                    title: `${verse.reference} - Quran`,
+                    url: `#quran-${verse.reference.replace(/\s+/g, '-')}`
+                  }];
+                  return {
+                    content: `Based on the Quran:\n\n**${verse.reference}**\n\n**Arabic:** ${verse.arabic}\n\n**Translation:** ${verse.translation}\n\n**Tafsir:** ${verse.tafsir}`,
+                    sources
+                  };
+                }
+                break;
+              }
+              case "prayer":
+              case "pillar": {
+                const hadithResults = await apiService.searchHadith(prompt);
+                const quranResults = await apiService.searchQuran(prompt);
+                let content = "";
+                const sources = [];
+                if (quranResults.length > 0) {
+                  const verse = quranResults[0];
+                  content += `**From the Quran (${verse.reference}):**\n\n${verse.arabic}\n\n${verse.translation}\n\n${verse.tafsir}\n\n`;
+                  sources.push({
+                    title: `${verse.reference} - Quran`,
+                    url: `#quran-${verse.reference.replace(/\s+/g, '-')}`
+                  });
+                }
+                if (hadithResults.length > 0) {
+                  const hadith = hadithResults[0];
+                  content += `**From Hadith (${hadith.book}):**\n\n"${hadith.hadith}"\n\n${hadith.narrator}`;
+                  sources.push({
+                    title: `${hadith.book} - ${hadith.chapter}`,
+                    url: `#hadith-${hadith.id}`
+                  });
+                }
+                if (content) {
+                  return { content, sources };
+                }
+                break;
+              }
+              case "general": {
+                const [hadithResults, quranResults, generalResults] = await Promise.all([
+                  apiService.searchHadith(prompt),
+                  apiService.searchQuran(prompt),
+                  apiService.searchGeneralKnowledge(prompt)
+                ]);
+                let content = "";
+                const sources = [];
+                if (quranResults.length > 0) {
+                  const verse = quranResults[0];
+                  content += `**From the Quran (${verse.reference}):**\n\n${verse.arabic}\n\n${verse.translation}\n\n${verse.tafsir}\n\n`;
+                  sources.push({
+                    title: `${verse.reference} - Quran`,
+                    url: `#quran-${verse.reference.replace(/\s+/g, '-')}`
+                  });
+                }
+                if (hadithResults.length > 0) {
+                  const hadith = hadithResults[0];
+                  content += `**From Hadith (${hadith.book}):**\n\n"${hadith.hadith}"\n\n${hadith.narrator}\n\n`;
+                  sources.push({
+                    title: `${hadith.book} - ${hadith.chapter}`,
+                    url: `#hadith-${hadith.id}`
+                  });
+                }
+                content += `**General Islamic Knowledge:**\n\n${generalResults.content}`;
+                sources.push(...generalResults.sources);
+                return { content, sources };
+              }
+            }
+            
+            const responses = {
+              en: `Based on Islamic teachings, ${prompt.toLowerCase().includes('prayer') ? 'prayer (Salah) is one of the five pillars of Islam. It should be performed five times a day facing the Qibla direction.' : 'Islamic knowledge emphasizes the importance of seeking knowledge and understanding the Quran and Sunnah.'}`,
+              ur: `اسلامی تعلیمات کے مطابق، ${prompt.toLowerCase().includes('prayer') ? 'نماز اسلام کے پانچ ستونوں میں سے ایک ہے۔ اسے روزانہ پانچ وقت ادا کیا جانا چاہیے۔' : 'اسلامی علم کا تعلق قرآن اور سنت کو سمجھنے اور علم حاصل کرنے کی اہمیت سے ہے۔'}`,
+              ar: `بناءً على التعاليم الإسلامية، ${prompt.toLowerCase().includes('prayer') ? 'الصلاة هي أحد أركان الإسلام الخمسة. ينبغي أداؤها خمس مرات في اليوم مواجهة القبلة.' : 'العلم الإسلامي يؤكد على أهمية طلب العلم وفهم القرآن والسنة.'}`,
+              hi: `इस्लामिक शिक्षाओं के अनुसार, ${prompt.toLowerCase().includes('prayer') ? 'नमाज़ (सलाह) इस्लाम के पाँच स्तंभों में से एक है। इसे दिन में पाँच बार किब्ला की ओर मुख करके अदा करना चाहिए।' : 'इस्लामिक ज्ञान में क़ुरआन और सुन्नत को समझने और ज्ञान प्राप्त करने का महत्व शामिल है।'}`,
+              rom_ur: `Islami taleem ke mutabiq, ${prompt.toLowerCase().includes('prayer') ? 'namaz (salah) Islam ke paanch stoonon mein se aik hai. Isay rozana paanch waqt ada karna chahiye.' : 'Islami ilm me Quran aur sunnat ko samajhne aur ilm hasil karne ki ahmiyat shamil hai.'}`,
+              rom_hi: `Islāmik śikṣāon ke anusaṛ, ${prompt.toLowerCase().includes('prayer') ? 'namāz (salāh) islām ke pā̃ca stambhōṁ meṁ se ēka hai. Isē dina meṁ pā̃ca bāra qiblā kī ora mukha karakē adā karanā cāhi\'ē.' : 'Islāmik jñāna meṁ qur\'āna aura sunnata kō samajhanē aura jñāna prāpta karanē kī ahamiyata śāmila hai.'}`
+            };
+            
+            return {
+              content: responses[language],
+              sources: [
+                { title: "Quran - Surah Al-Baqarah", url: "#" },
+                { title: "Hadith - Sahih Bukhari", url: "#" }
+              ]
+            };
+          },
+
+          getDailyVerse: async (language) => {
+            await new Promise(resolve => setTimeout(resolve, 800));
+            const verses = {
+              en: { reference: "Surah Ar-Rahman 55:29", arabic: "وَيَبْقَىٰ وَجْهُ رَبِّكَ ذُو الْجَلَالِ وَالْإِكْرَامِ", translation: "And the Face of your Lord will remain, full of Majesty and Honor.", tafsir: "This verse emphasizes the eternal nature of Allah's attributes of majesty and generosity." },
+              ur: { reference: "سورۃ الرحمن 55:29", arabic: "وَيَبْقَىٰ وَجْهُ رَبِّكَ ذُو الْجَلَالِ وَالْإِكْرَامِ", translation: "اور آپ کے پروردگار کا چہرہ باقی رہے گا، جو جلال و اکرام والا ہے۔", tafsir: "یہ آیت اللہ کے جلال اور کرم کی ازلیت پر زور دیتی ہے۔" },
+              ar: { reference: "سورة الرحمن 55:29", arabic: "وَيَبْقَىٰ وَجْهُ رَبِّكَ ذُو الْجَلَالِ وَالْإِكْرَامِ", translation: "ويبقى وجه ربك ذو الجلال والإكرام", tafsir: "هذه الآية تؤكد على طبيعة الله الأزلية من الجلال والإكرام." },
+              hi: { reference: "सूरा अर-रहमान 55:29", arabic: "وَيَبْقَىٰ وَجْهُ رَبِّكَ ذُو الْجَلَالِ وَالْإِكْرَAMِ", translation: "और तुम्हारे प्रभु का चेहरा बाक़ी रहेगा, जो जलाल और इकराम वाला है।", tafsir: "यह आयत अल्लाह के जलाल और करम की अनन्तता पर जोर देती है।" },
+              rom_ur: { reference: "Surah Ar-Rahman 55:29", arabic: "وَيَبْقَىٰ وَجْهُ رَبِّكَ ذُو الْجَلَالِ وَالْإِكْرَAMِ", translation: "Aur aap ke Rubb ka chehra baqi rahe ga, jo jalal o ikram wala hai.", tafsir: "Ye aya Allah ke jalal aur karam ki azlati par zor deti hai." },
+              rom_hi: { reference: "Sūrā ar-raḥamān 55:29", arabic: "وَيَبْقَىٰ وَجْهُ رَبِّكَ ذُو الْجَلَالِ وَالْإِكْرَAMِ", translation: "aura tumhāre prabhu kā ceharā bāqī rahegā, jo jalāla aura ikarāma vālā hai.", tafsir: "yah āyata allāha ke jalāla aura karama kī anantatā para jora detī hai." }
+            };
+            return verses[language];
+          },
+
+          generateSpeech: async (text) => {
+            console.log("Speaking:", text);
+            // In a real app, this would call a text-to-speech API
+            alert("Speaking (check console): " + text.substring(0, 50) + "...");
           }
-        },
-      };
-
-      // Language options (moved to global scope)
-      const languageOptions = [
-        { value: "en", label: "English" },
-        { value: "ur", label: "اردو" },
-        { value: "ar", label: "العربية" },
-        { value: "hi", label: "हिंदी" },
-        { value: "roman-ur", label: "Roman Urdu" },
-        { value: "roman-hi", label: "Roman Hindi" },
-      ];
-
-      // --- React Components (Converted to use HTML) ---
-
-      // Verse Skeleton Component
-      const VerseSkeleton = () => (
-        <div className="animate-pulse space-y-3">
-          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-          <div className="h-4 bg-gray-200 rounded"></div>
-          <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-          <div className="h-3 bg-gray-200 rounded w-1/4 mt-4"></div>
-        </div>
-      );
-
-      // Verse of the Day Component (replaces <Card> with <div>)
-      const VerseOfTheDay = ({ verse, loading }) => (
-        <div className="bg-gradient-to-br from-teal-50 to-cyan-50 border-teal-200 border rounded-lg">
-          <div className="p-6">
-            <h3 className="text-lg font-semibold text-teal-800 mb-3">
-              Verse of the Day
-            </h3>
-            {loading ? (
-              <VerseSkeleton />
-            ) : verse ? (
-              <div className="space-y-3">
-                <p className="text-2xl font-arabic text-right leading-loose text-teal-900">
-                  {verse.text}
-                </p>
-                <p className="text-gray-700 italic">{verse.translation}</p>
-                <p className="text-sm text-teal-700 font-medium">
-                  {verse.reference}
-                </p>
-              </div>
-            ) : (
-              <p className="text-gray-500">Failed to load verse</p>
-            )}
-          </div>
-        </div>
-      );
-
-      // Chat Message Component (replaces <Avatar> and <Button> with <div> and <button>)
-      const ChatMessage = ({ message, language }) => {
-        const isRTL = language === "ar" || language === "ur";
-
-        const handleCopy = () => {
-          navigator.clipboard.writeText(message.content);
         };
 
-        const handleTextToSpeech = () => {
-          mockServices.generateSpeech(message.content);
-        };
+        // Language selector component
+        const LanguageSelector = ({ language, setLanguage }) => {
+          const languages = [
+            { code: "en", name: "English" },
+            { code: "ur", name: "اردو" },
+            { code: "ar", name: "العربية" },
+            { code: "hi", name: "हिन्दी" },
+            { code: "rom_ur", name: "Roman Urdu" },
+            { code: "rom_hi", name: "Roman Hindi" }
+          ];
 
-        if (message.role === "user") {
           return (
-            <div
-              className={`flex ${
-                isRTL ? "flex-row-reverse" : "flex-row"
-              } justify-end mb-6`}
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="bg-white border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             >
-              <div className="flex items-end space-x-2">
-                <div className="bg-teal-500 text-white rounded-2xl rounded-br-none px-4 py-3 max-w-[80%]">
-                  <p
-                    className={`${
-                      isRTL ? "text-right" : "text-left"
-                    } whitespace-pre-wrap`}
-                  >
-                    {message.content}
-                  </p>
+              {languages.map((lang) => (
+                <option key={lang.code} value={lang.code}>
+                  {lang.name}
+                </option>
+              ))}
+            </select>
+          );
+        };
+
+        // Verse of the day component
+        const VerseOfTheDay = ({ verse, loading }) => {
+          if (loading) {
+            return (
+              <div className="bg-white rounded-xl shadow-md p-6 animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
+                <div className="h-6 bg-gray-200 rounded w-full mb-3"></div>
+                <div className="h-4 bg-gray-200 rounded w-5/6 mb-3"></div>
+                <div className="h-4 bg-gray-200 rounded w-4/5"></div>
+              </div>
+            );
+          }
+
+          if (!verse) return null;
+
+          return (
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center mb-4">
+                <span className="text-teal-600 mr-2 text-xl">📖</span> {/* Replaced BookOpen icon */}
+                <h3 className="font-semibold text-teal-700">Verse of the Day</h3>
+              </div>
+              <div className="mb-3">
+                <p className="text-xs text-gray-500 mb-1">{verse.reference}</p>
+                <p className="text-2xl text-right leading-relaxed mb-3" dir="rtl">{verse.arabic}</p>
+                <p className="text-gray-700 italic mb-3">{verse.translation}</p>
+                <p className="text-sm text-gray-600">{verse.tafsir}</p>
+              </div>
+            </div>
+          );
+        };
+
+        // Chat message component
+        // Replaced Avatar and Button components with styled HTML
+        const ChatMessage = ({ message, onSpeak, onCopy }) => {
+          const isUser = message.role === "user";
+          const isRTL = message.content.charCodeAt(0) > 128; // Simple RTL detection
+
+          return (
+            <div className={`flex ${isUser ? "justify-end" : "justify-start"} mb-4`}>
+              <div className={`max-w-[85%] flex ${isUser ? "flex-row-reverse" : "flex-row"}`}>
+                {/* Replaced Avatar component */}
+                <div className={`flex-shrink-0 mt-1 ${isUser ? "ml-3" : "mr-3"} w-10 h-10 rounded-full flex items-center justify-center ${isUser ? "bg-teal-100 text-teal-800" : "bg-gray-100 text-gray-800"}`}>
+                  {isUser ? <span className="text-lg">👤</span> : <span className="text-lg">🤖</span>} {/* Replaced User/Bot icons */}
                 </div>
-                {/* Replaced <Avatar> */}
-                <div className="h-8 w-8 rounded-full flex items-center justify-center bg-teal-100 text-teal-800 flex-shrink-0">
-                  U
+                
+                <div className={`rounded-2xl px-4 py-3 ${isUser ? "bg-teal-600 text-white rounded-tr-none" : "bg-gray-100 text-gray-800 rounded-tl-none"}`}>
+                  <div className={isRTL ? "text-right" : "text-left"} dir={isRTL ? "rtl" : "ltr"}>
+                    {message.content.split('\n').map((line, i) => (
+                      <p key={i} className="mb-2 last:mb-0" style={{ whiteSpace: 'pre-wrap' }}>{line}</p>
+                    ))}
+                  </div>
+                  
+                  {!isUser && message.sources && message.sources.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <p className="text-xs text-gray-500 mb-1">Sources:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {message.sources.map((source, i) => (
+                          <a 
+                            key={i} 
+                            href={source.url} 
+                            className="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {source.title}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {!isUser && (
+                    <div className="flex justify-end mt-2 space-x-2">
+                      {/* Replaced Button component */}
+                      <button 
+                        className="h-7 w-7 p-0 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-md"
+                        onClick={() => onSpeak(message.content)}
+                      >
+                        <span className="text-sm">🔊</span> {/* Replaced Volume2 icon */}
+                      </button>
+                      {/* Replaced Button component */}
+                      <button 
+                        className="h-7 w-7 p-0 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-md"
+                        onClick={() => onCopy(message.content)}
+                      >
+                        <span className="text-sm">📋</span> {/* Replaced Copy icon */}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           );
-        }
+        };
 
-        return (
-          <div
-            className={`flex ${
-              isRTL ? "flex-row-reverse" : "flex-row"
-            } justify-start mb-6`}
-          >
-            <div className="flex items-start space-x-2">
-              {/* Replaced <Avatar> */}
-              <div className="h-8 w-8 rounded-full flex items-center justify-center bg-gray-100 text-gray-800 flex-shrink-0">
-                AI
+        // Loading message component
+        const LoadingMessage = () => (
+          <div className="flex justify-start mb-4">
+            <div className="flex">
+              {/* Replaced Avatar component */}
+              <div className="flex-shrink-0 mr-3 w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 text-gray-800">
+                <span className="text-lg">🤖</span> {/* Replaced Bot icon */}
               </div>
-              <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-none px-4 py-3 max-w-[80%]">
-                <p
-                  className={`${
-                    isRTL ? "text-right" : "text-left"
-                  } whitespace-pre-wrap`}
-                >
-                  {message.content}
-                </p>
-
-                {message.sources && message.sources.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {message.sources.map((source, index) => (
-                      <a
-                        key={index}
-                        href={source.url}
-                        className="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded-full hover:bg-teal-200 transition-colors"
-                      >
-                        {source.title}
-                      </a>
-                    ))}
-                  </div>
-                )}
-
-                <div className="flex justify-end space-x-2 mt-2">
-                  {/* Replaced <Button> with <button> and <Volume2> with <i> */}
-                  <button
-                    type="button"
-                    className="h-7 w-7 text-gray-500 hover:text-teal-600 flex items-center justify-center rounded-md"
-                    onClick={handleTextToSpeech}
-                  >
-                    <i data-lucide="volume-2" className="h-4 w-4"></i>
-                  </button>
-                  {/* Replaced <Button> with <button> and <Copy> with <i> */}
-                  <button
-                    type="button"
-                    className="h-7 w-7 text-gray-500 hover:text-teal-600 flex items-center justify-center rounded-md"
-                    onClick={handleCopy}
-                  >
-                    <i data-lucide="copy" className="h-4 w-4"></i>
-                  </button>
+              <div className="bg-gray-100 rounded-2xl rounded-tl-none px-4 py-3">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                </div>
+                <div className="flex items-center mt-2 text-xs text-gray-500">
+                  <span className="mr-1 text-xs">🔍</span> {/* Replaced Search icon */}
+                  Searching Hadith, Quran, and general knowledge...
                 </div>
               </div>
             </div>
           </div>
         );
-      };
 
-      // --- Main App Component ---
-      // We removed "export default"
-      function IslamicAIAssistant() {
-        const [language, setLanguage] = useState("en");
-        const [verse, setVerse] = useState(null);
-        const [verseLoading, setVerseLoading] = useState(true);
-        const [messages, setMessages] = useState([]);
-        const [inputValue, setInputValue] = useState("");
-        const [isLoading, setIsLoading] = useState(false);
-        const [imagePreview, setImagePreview] = useState(null);
-        const fileInputRef = useRef(null);
+        // Main App Component
+        function IslamicAIAssistant() {
+          const [language, setLanguage] = useState("en");
+          const [verse, setVerse] = useState(null);
+          const [verseLoading, setVerseLoading] = useState(true);
+          const [messages, setMessages] = useState([]);
+          const [inputValue, setInputValue] = useState("");
+          const [isLoading, setIsLoading] = useState(false);
+          const [attachedImage, setAttachedImage] = useState(null);
+          const messagesEndRef = useRef(null);
 
-        // Fetch daily verse on language change
-        useEffect(() => {
-          const fetchVerse = async () => {
-            setVerseLoading(true);
+          useEffect(() => {
+            const fetchVerse = async () => {
+              setVerseLoading(true);
+              try {
+                const dailyVerse = await apiService.getDailyVerse(language);
+                setVerse(dailyVerse);
+              } catch (error) {
+                console.error("Failed to fetch verse:", error);
+              } finally {
+                setVerseLoading(false);
+              }
+            };
+            fetchVerse();
+          }, [language]);
+
+          useEffect(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+          }, [messages, isLoading]);
+
+          const handleSubmit = async (e) => {
+            e.preventDefault();
+            if (!inputValue.trim() || isLoading) return;
+
+            const userMessage = {
+              id: Date.now().toString(),
+              role: "user",
+              content: inputValue,
+              timestamp: new Date()
+            };
+
+            setMessages(prev => [...prev, userMessage]);
+            setInputValue("");
+            setIsLoading(true);
+
             try {
-              const dailyVerse = await mockServices.getDailyVerse(language);
-              setVerse(dailyVerse);
+              const response = await apiService.generateGroundedResponse(
+                inputValue, 
+                language, 
+                attachedImage || undefined
+              );
+
+              const aiMessage = {
+                id: (Date.now() + 1).toString(),
+                role: "model",
+                content: response.content,
+                timestamp: new Date(),
+                sources: response.sources
+              };
+              setMessages(prev => [...prev, aiMessage]);
             } catch (error) {
-              console.error("Failed to fetch verse:", error);
+              console.error("Error generating response:", error);
+              const errorMessage = {
+                id: (Date.now() + 1).toString(),
+                role: "model",
+                content: "Sorry, I encountered an error. Please try again.",
+                timestamp: new Date()
+              };
+              setMessages(prev => [...prev, errorMessage]);
             } finally {
-              setVerseLoading(false);
+              setIsLoading(false);
+              setAttachedImage(null);
             }
           };
 
-          fetchVerse();
-        }, [language]);
-
-        // **NEW**: Initialize lucide icons whenever messages or language change
-        useEffect(() => {
-          lucide.createIcons();
-        }, [messages, language, verse, verseLoading]);
-
-        // Handle image upload
-        const handleImageUpload = (e) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              setImagePreview(reader.result);
-            };
-            reader.readAsDataURL(file);
-          }
-        };
-
-        // Remove image preview
-        const removeImage = () => {
-          setImagePreview(null);
-          if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-          }
-        };
-
-        // Handle form submission
-        const handleSubmit = async (e) => {
-          e.preventDefault();
-
-          if ((!inputValue.trim() && !imagePreview) || isLoading) return;
-
-          // Add user message
-          const userMessage = {
-            id: Date.now().toString(),
-            role: "user",
-            content: inputValue,
-            timestamp: new Date(),
+          const handleSpeak = async (text) => {
+            try {
+              await apiService.generateSpeech(text);
+            } catch (error) {
+              console.error("Speech generation failed:", error);
+            }
           };
 
-          setMessages((prev) => [...prev, userMessage]);
-          setInputValue("");
-          setImagePreview(null);
-          setIsLoading(true);
+          const handleCopy = (text) => {
+            navigator.clipboard.writeText(text);
+          };
 
-          if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-          }
+          const handleImageAttach = (e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              setAttachedImage(file);
+            }
+          };
 
-          try {
-            // Get AI response
-            const response = await mockServices.generateGroundedResponse(
-              inputValue,
-              language,
-              imagePreview ? new File([], "image") : undefined
-            );
+          const removeImage = () => {
+            setAttachedImage(null);
+          };
+          
+          const openV21Link = () => {
+            window.open("https://ai.studio/apps/drive/1hpI0KSdEUUoqfNUMBM30amBq3xbQwAVd", "_blank");
+          };
 
-            // Add AI message
-            const aiMessage = {
-              id: (Date.now() + 1).toString(),
-              role: "model",
-              content: response.content,
-              sources: response.sources,
-              timestamp: new Date(),
-            };
-
-            setMessages((prev) => [...prev, aiMessage]);
-          } catch (error) {
-            console.error("Error generating response:", error);
-            const errorMessage = {
-              id: (Date.now() + 1).toString(),
-              role: "model",
-              content: "Sorry, I encountered an error. Please try again.",
-              timestamp: new Date(),
-            };
-            setMessages((prev) => [...prev, errorMessage]);
-          } finally {
-            setIsLoading(false);
-          }
-        };
-
-        // Handle Enter key submission
-        const handleKeyDown = (e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            handleSubmit(e);
-          }
-        };
-
-        return (
-          <div className="flex flex-col min-h-screen bg-gradient-to-b from-teal-50 to-cyan-50">
-            {/* Header */}
-            <header className="bg-white border-b border-teal-200 py-4 px-6">
-              <div className="max-w-4xl mx-auto flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="bg-teal-500 w-10 h-10 rounded-full flex items-center justify-center">
-                    <span className="text-white font-bold text-xl">Q</span>
+          return (
+            <div className="flex flex-col h-screen bg-gradient-to-br from-teal-50 to-cyan-100">
+              {/* Header */}
+              <header className="bg-white shadow-sm py-4 px-6 flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="bg-teal-600 w-10 h-10 rounded-lg flex items-center justify-center mr-3">
+                    <span className="text-white text-2xl">📖</span> {/* Replaced BookOpen icon */}
                   </div>
-                  <h1 className="text-xl font-bold text-teal-800">
-                    Islamic AI Assistant
-                  </h1>
+                  <h1 className="text-xl font-bold text-teal-800">Islamic AI Assistant</h1>
                 </div>
+                <div className="flex items-center space-x-3">
+                  {/* Replaced Button component */}
+                  <button 
+                    onClick={openV21Link}
+                    className="bg-teal-600 hover:bg-teal-700 text-white text-sm py-1 px-3 flex items-center rounded-md"
+                  >
+                    V2.1
+                    <span className="ml-1 text-sm">🔗</span> {/* Replaced ExternalLink icon */}
+                  </button>
+                  <LanguageSelector language={language} setLanguage={setLanguage} />
+                </div>
+              </header>
 
-                {/* Replaced <LanguageSelector> with <select> */}
-                <select
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  className="w-[140px] bg-white border-teal-200 border rounded-md p-2 focus:ring-2 focus:ring-teal-500"
-                >
-                  {languageOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </header>
-
-            {/* Main Content */}
-            <main className="flex-1 py-6 px-4">
-              <div className="max-w-4xl mx-auto">
+              {/* Main Content */}
+              <main className="flex-1 overflow-y-auto p-4 md:p-6">
                 {messages.length === 0 ? (
-                  // Welcome Screen
-                  <div className="flex flex-col items-center text-center py-12">
-                    <div className="bg-teal-100 p-4 rounded-full mb-6">
-                      <div className="bg-teal-500 w-16 h-16 rounded-full flex items-center justify-center">
-                        <span className="text-white font-bold text-2xl">Q</span>
+                  <div className="max-w-2xl mx-auto text-center py-12">
+                    <div className="bg-teal-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <span className="text-teal-700 text-4xl">🤖</span> {/* Replaced Bot icon */}
+                    </div>
+                    <h2 className="text-2xl font-bold text-teal-800 mb-2">As-salamu alaykum!</h2>
+                    <p className="text-gray-600 mb-8">
+                      Ask me anything about Islam, Quran, Hadith, or Islamic practices.
+                    </p>
+                    
+                    <div className="bg-white rounded-xl shadow-md overflow-hidden mb-8">
+                      <div className="bg-gray-200 border-2 border-dashed rounded-xl w-full h-48 flex items-center justify-center">
+                        <span className="text-gray-400 text-5xl">📖</span> {/* Replaced BookOpen icon */}
                       </div>
                     </div>
-
-                    <h2 className="text-3xl font-bold text-teal-800 mb-4">
-                      Welcome to Islamic AI Assistant
-                    </h2>
-
-                    <p className="text-gray-600 max-w-2xl mb-8">
-                      Ask any questions about Islam, Quran, Hadith, and Islamic
-                      practices. Get accurate, grounded responses with references
-                      to authentic sources.
-                    </p>
-
-                    <div className="w-32 h-32 mb-8">
-                      <div className="bg-gray-200 border-2 border-dashed rounded-xl w-full h-full" />
-                    </div>
-
-                    <div className="w-full max-w-md">
-                      <VerseOfTheDay verse={verse} loading={verseLoading} />
-                    </div>
+                    
+                    <VerseOfTheDay verse={verse} loading={verseLoading} />
                   </div>
                 ) : (
-                  // Chat View
-                  <div className="pb-24">
+                  <div className="max-w-4xl mx-auto">
                     {messages.map((message) => (
-                      <ChatMessage
-                        key={message.id}
-                        message={message}
-                        language={language}
+                      <ChatMessage 
+                        key={message.id} 
+                        message={message} 
+                        onSpeak={handleSpeak} 
+                        onCopy={handleCopy} 
                       />
                     ))}
+                    {isLoading && <LoadingMessage />}
+                    <div ref={messagesEndRef} />
+                  </div>
+                )}
+              </main>
 
-                    {isLoading && (
-                      <div className="flex flex-row justify-start mb-6">
-                        <div className="flex items-start space-x-2">
-                          <div className="h-8 w-8 rounded-full flex items-center justify-center bg-gray-100 text-gray-800 flex-shrink-0">
-                            AI
-                          </div>
-                          <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-none px-4 py-3">
-                            <div className="flex space-x-1">
-                              <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"></div>
-                              <div
-                                className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"
-                                style={{ animationDelay: "0.2s" }}
-                              ></div>
-                              <div
-                                className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"
-                                style={{ animationDelay: "0.4s" }}
-                              ></div>
-                            </div>
-                          </div>
-                        </div>
+              {/* Footer - Input Area */}
+              <footer className="bg-white border-t border-gray-200 p-4">
+                <div className="max-w-4xl mx-auto">
+                  {attachedImage && (
+                    <div className="flex items-center mb-3">
+                      <div className="relative">
+                        <div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" />
+                        <button 
+                          onClick={removeImage}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"
+                        >
+                          ×
+                        </button>
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </main>
-
-            {/* Footer - Chat Input */}
-            <footer className="bg-white border-t border-teal-200 py-4 px-4 fixed bottom-0 w-full">
-              <div className="max-w-4xl mx-auto">
-                {imagePreview && (
-                  <div className="mb-3 flex items-center">
-                    <div className="relative">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="h-16 w-16 object-cover rounded-lg border border-gray-300"
-                      />
-                      <button
-                        onClick={removeImage}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
-                      >
-                        ×
-                      </button>
+                      <span className="ml-2 text-sm text-gray-600 truncate max-w-xs">
+                        {attachedImage.name}
+                      </span>
                     </div>
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="flex items-end space-x-2">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleImageUpload}
-                    accept="image/*"
-                    className="hidden"
-                    id="image-upload"
-                  />
-                  <label
-                    htmlFor="image-upload"
-                    className="flex items-center justify-center h-10 w-10 rounded-full bg-teal-100 text-teal-600 hover:bg-teal-200 cursor-pointer flex-shrink-0"
-                  >
-                    <i data-lucide="paperclip" className="h-5 w-5"></i>
-                  </label>
-
-                  <div className="flex-1 relative">
-                    {/* Replaced <Textarea> with <textarea> */}
-                    <textarea
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      placeholder="Ask a question about Islam..."
-                      className="min-h-[40px] max-h-32 resize-none py-2 px-3 pr-12 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
-                      disabled={isLoading}
-                    />
-                    {/* Replaced <Button> with <button> */}
-                    <button
-                      type="submit"
-                      className="absolute right-2 bottom-1 h-8 w-8 bg-teal-500 hover:bg-teal-600 rounded-md flex items-center justify-center disabled:opacity-50"
-                      disabled={
-                        (!inputValue.trim() && !imagePreview) || isLoading
-                      }
+                  )}
+                  
+                  <form onSubmit={handleSubmit} className="flex items-end gap-2">
+                    <div className="relative flex-1">
+                      {/* Replaced Textarea component */}
+                      <textarea
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        placeholder="Ask about Islam, Quran, or Hadith..."
+                        className="min-h-[56px] w-full border border-gray-300 rounded-lg p-3 pr-12 resize-none focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        disabled={isLoading}
+                        rows="1"
+                      />
+                      <input
+                        type="file"
+                        id="image-upload"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleImageAttach}
+                        disabled={isLoading}
+                      />
+                      <label 
+                        htmlFor="image-upload"
+                        className="absolute right-2 bottom-3 p-2 text-gray-500 hover:text-teal-600 cursor-pointer"
+                      >
+                        <span className="text-xl">📎</span> {/* Replaced Paperclip icon */}
+                      </label>
+                    </div>
+                    {/* Replaced Button component */}
+                    <button 
+                      type="submit" 
+                      className="h-12 w-12 p-0 rounded-full bg-teal-600 text-white hover:bg-teal-700 flex items-center justify-center disabled:opacity-50"
+                      disabled={isLoading || !inputValue.trim()}
                     >
-                      <i data-lucide="send" className="h-4 w-4 text-white"></i>
+                      <span className="text-xl">📤</span> {/* Replaced Send icon */}
                     </button>
-                  </div>
-                </form>
-              </div>
-            </footer>
-          </div>
-        );
-      }
+                  </form>
+                </div>
+              </footer>
+            </div>
+          );
+        }
 
-      // --- 8. Render the App ---
-      // This finds the <div id="root"> and mounts our React component inside it.
-      const root = ReactDOM.createRoot(document.getElementById("root"));
-      root.render(<IslamicAIAssistant />);
+        // Mount the app to the 'root' div
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<IslamicAIAssistant />);
+
     </script>
-  </body>
+</body>
 </html>
